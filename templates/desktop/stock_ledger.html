@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap"><h4>Stock ledger · {{ item.name }} <small class="text-muted">({{ item.base_unit.code }})</small></h4>
+<form class="d-flex gap-2 align-items-center"><label class="small">From</label><input type="date" name="from" value="{{ d1|date:'Y-m-d' }}" class="form-control form-control-sm"><label class="small">To</label><input type="date" name="to" value="{{ d2|date:'Y-m-d' }}" class="form-control form-control-sm"><button class="btn btn-sm btn-outline-secondary">Apply</button><a href="{% url 'stock_list' %}" class="btn btn-sm btn-link">Summary</a></form></div>
+<div class="card mt-2"><table class="table table-sm mb-0"><thead><tr><th>Date</th><th>Movement</th><th>Source document</th><th>Remarks</th><th class="num">In</th><th class="num">Out</th><th class="num">Balance</th><th class="num">Unit cost</th><th class="num">Value</th><th>Batch</th><th>User</th></tr></thead>
+{% for r in rows %}{% if r.opening %}<tr class="table-light"><td colspan="6">Balance brought forward</td><td class="num fw-bold">{{ r.balance|qty }}</td><td colspan="4"></td></tr>
+{% else %}<tr><td>{{ r.m.date|date:"d M Y" }}</td><td>{{ r.m.get_movement_type_display }}</td><td>{{ r.m.source_ref }}</td><td class="small">{{ r.m.remarks }}</td>
+<td class="num">{% if r.m.qty > 0 %}{{ r.m.qty|qty }}{% endif %}</td><td class="num">{% if r.m.qty < 0 %}{{ r.m.qty|qty }}{% endif %}</td><td class="num fw-bold">{{ r.balance|qty }}</td><td class="num">{{ r.m.unit_cost|floatformat:4 }}</td><td class="num">{{ r.m.value|inr }}</td><td class="small">{{ r.m.batch_no }}</td><td class="small">{{ r.m.created_by|default:"" }}</td></tr>{% endif %}{% endfor %}</table></div>
+{% endblock %}

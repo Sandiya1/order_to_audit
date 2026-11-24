@@ -1,0 +1,85 @@
+{% extends "m/base.html" %}{% load ui %}
+{% block t2 %}on{% endblock %}
+{% block content %}
+<h5>New order</h5>
+<div id="banner"></div>
+<div class="mb-3"><label class="form-label small text-muted mb-1">Customer</label>
+ <select id="cust" class="form-select form-select-lg"></select><div id="custinfo" class="small text-muted mt-1"></div></div>
+<div id="items"></div>
+<div class="mb-3"><input id="notes" class="form-control" placeholder="Note for the factory (optional)" maxlength="200"></div>
+<div class="card mb-3"><div class="card-body d-flex justify-content-between"><span>Total before GST</span><b id="total" class="num">₹0.00</b></div></div>
+<button id="submit" class="btn btn-success btn-lg w-100">Submit order</button>
+<div id="msg" class="mt-3"></div>
+{{ catalog|json_script:"catalog" }}
+{% endblock %}
+{% block scripts %}
+<script>
+const C = JSON.parse(document.getElementById('catalog').textContent);
+const $ = id => document.getElementById(id);
+let qty = {};
+const csrf = () => (document.cookie.split('; ').find(c => c.startsWith('csrftoken=')) || '').split('=')[1] || '';
+const fmt = n => '₹' + n.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {const r = Math.random()*16|0; return (c=='x'?r:(r&3|8)).toString(16)}));
+const cust = () => C.customers.find(c => c.id == $('cust').value);
+
+C.customers.forEach(c => $('cust').add(new Option(c.name, c.id)));
+function renderItems(){
+  const c = cust(); if(!c){ $('items').innerHTML = '<p class="text-muted">No customers assigned.</p>'; return; }
+  $('custinfo').textContent = c.type + ' · ' + c.state;
+  $('items').innerHTML = C.items.map(i => `<div class="card mb-2"><div class="card-body py-2">
+    <div class="d-flex justify-content-between"><b>${i.name}</b><span class="num">${fmt(parseFloat(c.prices[i.id]||0))} / ${i.unit}</span></div>
+    <div class="d-flex align-items-center gap-2 mt-2">
+      <button class="btn btn-outline-secondary btn-lg px-4" onclick="step(${i.id},-10)">−10</button>
+      <button class="btn btn-outline-secondary btn-lg px-3" onclick="step(${i.id},-1)">−</button>
+      <input id="q${i.id}" type="number" inputmode="numeric" min="0" class="form-control form-control-lg text-center" value="${qty[i.id]||0}" oninput="setq(${i.id},this.value)">
+      <button class="btn btn-outline-primary btn-lg px-3" onclick="step(${i.id},1)">+</button>
+      <button class="btn btn-outline-primary btn-lg px-4" onclick="step(${i.id},10)">+10</button></div></div></div>`).join('');
+  total();
+}
+function setq(id, v){ qty[id] = Math.max(0, parseFloat(v)||0); total(); }
+function step(id, d){ qty[id] = Math.max(0, (qty[id]||0) + d); $('q'+id).value = qty[id]; total(); }
+function total(){ const c = cust(); if(!c) return; let t = 0;
+  C.items.forEach(i => t += (qty[i.id]||0) * parseFloat(c.prices[i.id]||0)); $('total').textContent = fmt(t); }
+$('cust').onchange = () => { renderItems(); };
+
+// ---- offline queue: orders are saved on the phone and re-sent (idempotent via client_uuid)
+const getQ = () => { try { return JSON.parse(localStorage.getItem('pendingOrders') || '[]'); } catch(e) { return []; } };
+const setQ = q => localStorage.setItem('pendingOrders', JSON.stringify(q));
+async function send(o){
+  const r = await fetch('{% url "m_api_orders" %}', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf()}, body: JSON.stringify(o), credentials: 'same-origin'});
+  const j = await r.json().catch(() => ({ok: false, error: 'Bad response'}));
+  return {status: r.status, j};
+}
+async function sync(){
+  let q = getQ(); if(!q.length){ $('banner').innerHTML = ''; return; }
+  const left = [];
+  for(const o of q){
+    try { const {status, j} = await send(o); if(!(j.ok || status === 400)) left.push(o); }
+    catch(e){ left.push(o); }
+  }
+  setQ(left);
+  $('banner').innerHTML = left.length ? `<div class="alert alert-warning py-2">${left.length} order(s) waiting for network — will send automatically.</div>`
+                                       : (q.length ? '<div class="alert alert-success py-2">Offline orders sent ✔</div>' : '');
+}
+$('submit').onclick = async () => {
+  const c = cust(); const lines = C.items.filter(i => (qty[i.id]||0) > 0).map(i => ({item_id: i.id, qty: qty[i.id]}));
+  if(!lines.length){ $('msg').innerHTML = '<div class="alert alert-danger">Add at least one product.</div>'; return; }
+  const order = {client_uuid: uuid(), customer_id: c.id, notes: $('notes').value, lines,
+                 customer_name: c.name, summary: lines.map(l => C.items.find(i => i.id == l.item_id).name + ' × ' + l.qty).join(', ')};
+  $('submit').disabled = true;
+  try {
+    const {status, j} = await send(order);
+    if(j.ok){ $('msg').innerHTML = `<div class="alert alert-success"><b>Order ${j.number} submitted ✔</b><br>The factory can see it now.</div>`; qty = {}; renderItems(); $('notes').value = ''; }
+    else if(status === 403){ $('msg').innerHTML = '<div class="alert alert-danger">Session expired — please log in again.</div>'; }
+    else { $('msg').innerHTML = `<div class="alert alert-danger">${j.error || 'Could not submit.'}</div>`; }
+  } catch(e){  // network failure: keep the order on the phone
+    setQ(getQ().concat([order])); qty = {}; renderItems();
+    $('msg').innerHTML = '<div class="alert alert-warning"><b>No network — order saved on this phone.</b><br>It will be sent automatically when you are back online.</div>'; sync();
+  }
+  $('submit').disabled = false;
+};
+function netState(){ const n = $('net'); n.style.display = navigator.onLine ? 'none' : 'block'; n.className = 'text-center small py-1 bg-warning'; n.textContent = 'Offline — orders will be saved and sent later'; if(navigator.onLine) sync(); }
+window.addEventListener('online', netState); window.addEventListener('offline', netState);
+renderItems(); netState(); sync();
+</script>
+{% endblock %}

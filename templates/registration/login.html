@@ -1,0 +1,54 @@
+{% load static %}<!doctype html>
+<html lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · {{ COMPANY.name }}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥨</text></svg>">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+ body{min-height:100vh;background:linear-gradient(135deg,#1f2937 0%,#374151 55%,#b45309 140%);display:flex;align-items:center}
+ .panel{background:#fff;border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden}
+ .hero{background:#fffbeb;border-right:1px solid #f3e8c8}
+ .role{cursor:pointer;border:1px solid #e5e7eb;border-radius:12px;padding:.6rem .8rem;transition:.15s;background:#fff;text-align:left;width:100%}
+ .role:hover{border-color:#b45309;background:#fff7ed;transform:translateY(-1px)}
+ .role b{display:block}.role small{color:#6b7280}
+ .brand{font-size:2.4rem}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Pacifico&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/theme.css' %}"></head>
+<body>
+<div class="container" style="max-width:980px">
+ <div class="panel row g-0">
+  <div class="col-md-6 p-4 p-lg-5">
+   <div class="brand"></div>
+   <h3 class="mb-0">{{ COMPANY.name }}</h3>
+   <p class="text-muted">Order-to-Audit system</p>
+   <form method="post" class="mt-4">{% csrf_token %}
+    {% if form.errors %}<div class="alert alert-danger py-2">Wrong username or password.</div>{% endif %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="mb-3"><label class="form-label">Username</label>
+     <input id="u" name="username" class="form-control form-control-lg" autofocus autocapitalize="none" autocomplete="username"></div>
+    <div class="mb-3"><label class="form-label">Password</label>
+     <input id="p" type="password" name="password" class="form-control form-control-lg" autocomplete="current-password"></div>
+    <button class="btn btn-lg w-100 text-white" style="background:#b45309">Sign in</button>
+   </form>
+  </div>
+  {% if demo_logins %}
+  <div class="col-md-6 p-4 p-lg-5 hero">
+   <h6 class="text-uppercase text-muted small">Demo sign-ins</h6>
+   <p class="small text-muted">Tap a role to fill the form (password <code>{{ demo_password }}</code>).</p>
+   <div class="d-grid gap-2">
+    {% for user, label, desc in demo_logins %}
+     <button type="button" class="role" onclick="fill('{{ user }}')"><b>{{ label }}</b><small>{{ desc }}</small></button>
+    {% endfor %}
+   </div>
+  </div>
+  {% endif %}
+ </div>
+</div>
+<script>
+ function fill(u){document.getElementById('u').value=u;document.getElementById('p').value='{{ demo_password }}';document.getElementById('p').focus();}
+</script>
+</body></html>

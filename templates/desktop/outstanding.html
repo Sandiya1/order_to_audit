@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between"><h4>Outstanding receivables</h4>{% if is_admin %}<a class="btn btn-primary btn-sm" href="{% url 'payment_new' %}">Record payment</a>{% endif %}</div>
+<div class="card mb-3"><table class="table mb-0"><thead><tr><th>Customer</th><th class="num">Billed</th><th class="num">Received</th><th class="num">Outstanding</th><th class="num">0-30</th><th class="num">31-60</th><th class="num">61-90</th><th class="num">90+</th></tr></thead>
+{% for r in rows %}<tr><td>{{ r.customer.name }}</td><td class="num">{{ r.billed|inr }}</td><td class="num">{{ r.paid|inr }}</td><td class="num fw-bold">{{ r.outstanding|inr }}</td>{% for k,v in r.buckets.items %}<td class="num">{{ v|inr }}</td>{% endfor %}</tr>
+{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">Nothing outstanding.</td></tr>{% endfor %}
+<tr class="fw-bold"><td>Total</td><td></td><td></td><td class="num">{{ total|inr }}</td><td colspan="4"></td></tr></table></div>
+<div class="card"><div class="card-body"><h6>Recent payments</h6><table class="table table-sm mb-0">{% for p in payments %}<tr><td>{{ p.date|date:"d M" }}</td><td>{{ p.number }}</td><td>{{ p.customer.name }}</td><td>{{ p.invoice.number|default:"On account" }}</td><td>{{ p.get_mode_display }}</td><td class="num">₹{{ p.amount|inr }}</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

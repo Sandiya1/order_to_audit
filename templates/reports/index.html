@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h4>Reports for accounts &amp; audit</h4>
+<form method="get" class="d-flex gap-2 align-items-center mb-3"><label>From</label><input type="date" name="from" value="{{ d1|date:'Y-m-d' }}" class="form-control" style="width:160px"><label>To</label><input type="date" name="to" value="{{ d2|date:'Y-m-d' }}" class="form-control" style="width:160px"><button class="btn btn-outline-secondary">Set period</button></form>
+<div class="row g-3">{% for slug, title, desc in reports %}
+<div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body"><h6>{{ title }}</h6><p class="text-muted small">{{ desc }}</p>
+<a class="btn btn-sm btn-primary" href="{% url 'report_view' slug %}?from={{ d1|date:'Y-m-d' }}&to={{ d2|date:'Y-m-d' }}">View</a>
+<a class="btn btn-sm btn-outline-secondary" href="{% url 'report_view' slug %}?from={{ d1|date:'Y-m-d' }}&to={{ d2|date:'Y-m-d' }}&format=xlsx">Excel</a>
+<a class="btn btn-sm btn-outline-secondary" href="{% url 'report_view' slug %}?from={{ d1|date:'Y-m-d' }}&to={{ d2|date:'Y-m-d' }}&format=csv">CSV</a>
+<a class="btn btn-sm btn-outline-secondary" href="{% url 'report_view' slug %}?from={{ d1|date:'Y-m-d' }}&to={{ d2|date:'Y-m-d' }}&format=pdf">PDF</a></div></div></div>{% endfor %}</div>
+{% endblock %}

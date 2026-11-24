@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block content %}<h4>Audit trail</h4><div class="card"><table class="table table-sm mb-0"><thead><tr><th>When</th><th>User</th><th>Entity</th><th>Ref</th><th>Action</th><th>Detail</th></tr></thead>
+{% for l in logs %}<tr><td class="text-nowrap">{{ l.at|date:"d M Y H:i:s" }}</td><td>{{ l.user|default:"-" }}</td><td>{{ l.entity }}</td><td>{{ l.reference }}</td><td>{{ l.action }}</td><td>{{ l.detail }}</td></tr>{% endfor %}</table></div>{% endblock %}

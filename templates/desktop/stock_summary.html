@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap"><h4>Stock summary</h4>
+<form class="d-flex gap-2 align-items-center"><label class="small">From</label><input type="date" name="from" value="{{ d1|date:'Y-m-d' }}" class="form-control form-control-sm"><label class="small">To</label><input type="date" name="to" value="{{ d2|date:'Y-m-d' }}" class="form-control form-control-sm"><button class="btn btn-sm btn-outline-secondary">Apply</button>
+ {% if request.user.role != 'PRODUCTION' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'report_view' 'stock-summary' %}?format=xlsx">Excel</a>{% endif %}
+ {% if request.user.role == 'ADMIN' or request.user.role == 'PRODUCTION' %}<a class="btn btn-sm btn-primary" href="{% url 'stock_adjust' %}">Adjust stock</a>{% endif %}</form></div>
+<p class="text-muted small">Opening + receipts − issues − dispatches ± adjustments = closing. Every figure comes from the stock ledger; click an item for its movements.</p>
+{% for label, rows in groups %}{% if rows %}
+<div class="card mb-3"><div class="card-body pb-1"><h6>{{ label }}</h6></div><table class="table table-sm mb-0"><thead><tr><th>Item</th><th>Unit</th><th class="num">Opening</th><th class="num">Receipts</th><th class="num">Issued to production</th><th class="num">Dispatched</th><th class="num">Adjust.</th><th class="num">Closing</th><th class="num">Avg cost</th><th class="num">Value ₹</th></tr></thead>
+{% for r in rows %}<tr><td><a href="{% url 'stock_ledger' r.item.pk %}">{{ r.item.name }}</a>{% if r.low %} <span class="badge text-bg-danger">low</span>{% endif %}</td><td>{{ r.item.base_unit.code }}</td><td class="num">{{ r.opening|qty }}</td><td class="num">{{ r.receipts|qty }}</td><td class="num">{{ r.issues|qty }}</td><td class="num">{{ r.sales|qty }}</td><td class="num">{{ r.adjustments|qty }}</td><td class="num fw-bold">{{ r.closing|qty }}</td><td class="num">{{ r.wac|floatformat:2 }}</td><td class="num">{{ r.value|inr }}</td></tr>{% endfor %}</table></div>{% endif %}{% endfor %}
+{% endblock %}

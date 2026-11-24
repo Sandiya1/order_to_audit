@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      DEBUG: "0"
+      SECRET_KEY: "change-me-in-production"
+      ALLOWED_HOSTS: "*"
+      DB_PATH: /data/db.sqlite3
+    volumes:
+      - dbdata:/data
+volumes:
+  dbdata:

@@ -1,0 +1,9 @@
+{% extends "m/base.html" %}{% load ui %}
+{% block t4 %}on{% endblock %}
+{% block content %}
+<h5>Customer-wise sales</h5><p class="text-muted small">Your orders, excluding rejected and cancelled. Values are before GST.</p>
+{% for r in rows %}<div class="card mb-2"><div class="card-body py-2"><div class="d-flex justify-content-between"><b>{{ r.customer.name }}</b><b class="num">₹{{ r.ordered|inr }}</b></div>
+<div class="small text-muted">{{ r.orders }} order{{ r.orders|pluralize }} · invoiced ₹{{ r.invoiced|inr }}</div></div></div>
+{% empty %}<p class="text-muted">No sales yet.</p>{% endfor %}
+{% if rows %}<div class="d-flex justify-content-between fw-bold mt-3"><span>Total</span><span class="num">₹{{ total|inr }}</span></div>{% endif %}
+{% endblock %}

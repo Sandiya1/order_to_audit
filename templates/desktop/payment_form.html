@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="card" style="max-width:560px"><div class="card-body"><h5>Record payment</h5>
+<form method="post">{% csrf_token %}
+ <div class="mb-3"><label class="form-label">Customer</label><select name="customer" class="form-select" required>
+  {% for c in customers %}<option value="{{ c.pk }}" {% if inv and inv.customer_id == c.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+ <div class="mb-3"><label class="form-label">Against invoice (optional)</label><select name="invoice" class="form-select"><option value="">On account (applied to oldest invoices)</option>
+  {% for i in open_invoices %}<option value="{{ i.pk }}" {% if inv and inv.pk == i.pk %}selected{% endif %}>{{ i.number }} · {{ i.buyer_name }} · balance ₹{{ i.balance|inr }}</option>{% endfor %}</select></div>
+ <div class="row"><div class="col mb-3"><label class="form-label">Amount (₹)</label><input name="amount" class="form-control" inputmode="decimal" required></div>
+ <div class="col mb-3"><label class="form-label">Date</label><input type="date" name="date" value="{{ today|date:'Y-m-d' }}" class="form-control"></div></div>
+ <div class="row"><div class="col mb-3"><label class="form-label">Mode</label><select name="mode" class="form-select">{% for v,l in modes %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+ <div class="col mb-3"><label class="form-label">Reference</label><input name="reference" class="form-control"></div></div>
+ <button class="btn btn-primary">Save payment</button></form></div></div>
+{% endblock %}

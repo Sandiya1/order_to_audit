@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<h4>New production run</h4>
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2 align-items-end">
+ <div class="col-md-5"><label class="form-label">Product</label><select name="product" class="form-select" onchange="this.form.submit()">
+  <option value="">— choose —</option>{% for p in products %}<option value="{{ p.pk }}" {% if product and product.pk == p.pk %}selected{% endif %}>{{ p.name }}</option>{% endfor %}</select></div>
+ <div class="col-md-3"><label class="form-label">Batches</label><input name="batches" value="{{ batches|qty }}" class="form-control" inputmode="decimal"></div>
+ <div class="col-md-4"><button class="btn btn-outline-secondary">Update plan</button></div></form></div></div>
+{% if bom %}
+<form method="post">{% csrf_token %}<input type="hidden" name="product" value="{{ product.pk }}"><input type="hidden" name="batches" value="{{ batches|qty }}">
+<div class="card mb-3"><div class="card-body"><h6>Recipe (BOM) for {{ batches|qty }} batch(es) — expected output <b>{{ bom.yield_qty|qty }} × {{ batches|qty }}</b> packets · tolerance {{ bom.tolerance_pct|qty }}%</h6>
+<p class="text-muted small mb-2">Enter what was actually issued. Leave blank to use the plan (the pouch defaults to good packets + damaged).</p>
+<table class="table align-middle"><thead><tr><th>Material</th><th class="num">Planned</th><th class="num">In stock</th><th style="width:150px">Actual issued</th><th style="width:110px">Unit</th></tr></thead>
+{% for l in lines %}<tr><td>{{ l.bl.item.name }}{% if l.bl.is_primary_pack %} <span class="badge text-bg-light">primary pack</span>{% endif %}</td>
+ <td class="num">{{ l.planned|qty }} {{ l.bl.item.base_unit.code }}</td><td class="num">{{ l.on_hand|qty }}</td>
+ <td><input name="actual_{{ l.bl.item_id }}" value="{{ l.val }}" class="form-control form-control-sm num" inputmode="decimal" placeholder="{% if l.bl.is_primary_pack %}auto{% else %}{{ l.planned|qty }}{% endif %}"></td>
+ <td><select name="unit_{{ l.bl.item_id }}" class="form-select form-select-sm">{% for u in l.units %}<option value="{{ u.pk }}" {% if u == l.bl.item.base_unit %}selected{% endif %}>{{ u.code }}</option>{% endfor %}</select></td></tr>{% endfor %}</table>
+<div class="row g-3">
+ <div class="col-md-3"><label class="form-label">Run date</label><input type="date" name="run_date" value="{{ today|date:'Y-m-d' }}" class="form-control"></div>
+ <div class="col-md-3"><label class="form-label">Actual good output (packets)</label><input name="good_output" value="{{ post.good_output }}" class="form-control" inputmode="decimal" required></div>
+ <div class="col-md-3"><label class="form-label">Wastage — damaged pouches</label><input name="wastage" value="{{ post.wastage|default:'0' }}" class="form-control" inputmode="decimal"></div>
+ <div class="col-md-3"><label class="form-label">Notes</label><input name="notes" value="{{ post.notes }}" class="form-control"></div>
+ <div class="col-md-3"><label class="form-label">Labour (₹, optional now)</label><input name="labour" value="{{ post.labour }}" class="form-control" inputmode="decimal"></div>
+ <div class="col-md-3"><label class="form-label">Gas / power (₹)</label><input name="power_gas" value="{{ post.power_gas }}" class="form-control" inputmode="decimal"></div>
+ <div class="col-md-3"><label class="form-label">Other overhead (₹)</label><input name="other" value="{{ post.other }}" class="form-control" inputmode="decimal"></div></div>
+<button name="action" value="save" class="btn btn-primary mt-3">Save run — update stock</button></div></div></form>
+{% elif product %}<div class="alert alert-warning">This product has no active BOM. Add one under Master data.</div>{% endif %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between"><h4>Production runs</h4>{% if can_write %}<a class="btn btn-primary btn-sm" href="{% url 'production_new' %}">+ New production run</a>{% endif %}</div>
+<div class="card mt-2"><table class="table table-hover mb-0"><thead><tr><th>Run</th><th>Date</th><th>Product</th><th>Batch</th><th class="num">Expected</th><th class="num">Good</th><th class="num">Yield var</th><th>Alerts</th><th class="num">Cost / packet</th><th>Status</th></tr></thead>
+{% for r in runs %}<tr><td><a href="{% url 'production_detail' r.pk %}">{{ r.run_no }}</a></td><td>{{ r.run_date|date:"d M Y" }}</td><td>{{ r.product.name }}</td><td class="small">{{ r.batch_no }}</td>
+<td class="num">{{ r.expected_output|qty }}</td><td class="num">{{ r.good_output|qty }}</td><td class="num {% if r.yield_flagged %}flag{% endif %}">{{ r.yield_variance_pct|pct }}</td>
+<td>{% if r.has_alert %}<span class="badge text-bg-danger">Variance</span>{% else %}<span class="ok">ok</span>{% endif %}</td>
+<td class="num">₹{{ r.cost_per_packet|floatformat:2 }}</td><td><span class="badge text-bg-{{ r.status|badge }}">{{ r.get_status_display }}</span></td></tr>
+{% empty %}<tr><td colspan="10" class="text-center text-muted py-4">No runs yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}

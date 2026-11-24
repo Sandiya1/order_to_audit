@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between"><h4>Order {{ order.number }} <span class="badge text-bg-{{ order.status|badge }}">{{ order.get_status_display }}</span></h4>
+ <a href="{% url 'order_list' %}">← All orders</a></div>
+<p class="text-muted">{{ order.customer.name }} ({{ order.customer.get_customer_type_display }}, {{ order.customer.state_name }}) · taken by {{ order.salesman.get_full_name|default:order.salesman.username }} on {{ order.created_at|date:"d M Y H:i" }}
+{% if order.notes %}· “{{ order.notes }}”{% endif %}{% if order.reject_reason %}· rejected: {{ order.reject_reason }}{% endif %}</p>
+{% if shortage and order.status == 'SUBMITTED' %}<div class="alert alert-danger"><b>Stock shortage.</b> Finished goods cannot cover this order. You can reduce quantities to what is available, edit manually, or reject.</div>{% endif %}
+<form method="post">{% csrf_token %}
+<div class="card mb-3"><table class="table align-middle mb-0">
+<thead><tr><th>Product</th><th class="num">Ordered qty</th><th class="num">Rate (₹)</th><th class="num">On hand</th><th class="num">Reserved (other orders)</th><th class="num">Available</th><th>Stock check</th>{% if order.status == 'SUBMITTED' and is_admin %}<th>Remove</th>{% endif %}</tr></thead>
+{% for r in check %}<tr><td>{{ r.item.name }}</td>
+ <td class="num">{% if order.status == 'SUBMITTED' and is_admin %}<input name="qty_{{ r.line.pk }}" value="{{ r.line.qty|qty }}" class="form-control form-control-sm num d-inline" style="width:90px">{% else %}{{ r.line.qty|qty }}{% endif %}</td>
+ <td class="num">{% if order.status == 'SUBMITTED' and is_admin %}<input name="rate_{{ r.line.pk }}" value="{{ r.line.rate }}" class="form-control form-control-sm num d-inline" style="width:90px">{% else %}{{ r.line.rate|inr }}{% endif %}</td>
+ <td class="num">{{ r.on_hand|qty }}</td><td class="num">{{ r.reserved|qty }}</td><td class="num">{{ r.available|qty }}</td>
+ <td>{% if r.shortage > 0 %}<span class="flag">Short by {{ r.shortage|qty }}</span>{% else %}<span class="ok">✔ Covered</span>{% endif %}</td>
+ {% if order.status == 'SUBMITTED' and is_admin %}<td><input type="checkbox" name="remove" value="{{ r.line.pk }}"></td>{% endif %}</tr>{% endfor %}
+</table></div>
+<div class="card mb-3"><div class="card-body"><h6>Tax preview ({% if tax.igst_applies %}<span class="badge text-bg-warning">IGST — inter-state, place of supply {{ order.customer.state_name }}</span>{% else %}CGST + SGST — intra-state{% endif %})</h6>
+ <div class="row text-center"><div class="col">Taxable<br><b>₹{{ tax.taxable|inr }}</b></div>
+ {% if tax.igst_applies %}<div class="col">IGST<br><b>₹{{ tax.igst|inr }}</b></div>{% else %}<div class="col">CGST<br><b>₹{{ tax.cgst|inr }}</b></div><div class="col">SGST<br><b>₹{{ tax.sgst|inr }}</b></div>{% endif %}
+ <div class="col">Invoice total<br><b>₹{{ tax.total|inr }}</b></div></div></div></div>
+{% if is_admin %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+{% if order.status == 'SUBMITTED' %}
+ <button name="action" value="save" class="btn btn-outline-secondary">Save edits</button>
+ <button name="action" value="approve" class="btn btn-success">Approve</button>
+ {% if shortage %}<button name="action" value="reduce" class="btn btn-warning">Reduce to available stock</button>{% endif %}
+ <input name="reason" class="form-control" style="width:220px" placeholder="Reject reason (optional)">
+ <button name="action" value="reject" class="btn btn-outline-danger">Reject</button>
+{% elif order.status == 'APPROVED' %}<button name="action" value="invoice" class="btn btn-primary">Raise GST invoice</button>
+{% elif invoice %}<a class="btn btn-primary" href="{% url 'invoice_detail' invoice.pk %}">Open invoice {{ invoice.number }}</a>{% endif %}
+</div>{% endif %}
+</form>
+{% include "desktop/_audit.html" %}
+{% endblock %}

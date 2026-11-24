@@ -1,0 +1,15 @@
+{% extends "m/base.html" %}{% load ui %}
+{% block t3 %}on{% endblock %}
+{% block content %}
+<h5>My orders</h5>
+<div id="pending"></div>
+{% for o in orders %}<div class="card mb-2"><div class="card-body py-2">
+ <div class="d-flex justify-content-between"><div><b>{{ o.customer.name }}</b><br><span class="small text-muted">{{ o.number }} · {{ o.created_at|date:"d M H:i" }}</span></div><span class="badge text-bg-{{ o.status|badge }} align-self-start">{{ o.get_status_display }}</span></div>
+ <div class="small mt-1">{% for l in o.lines.all %}{{ l.item.name }} × {{ l.qty|qty }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+ <div class="small text-muted">₹{{ o.taxable_total|inr }} before tax{% if o.reject_reason %} · rejected: {{ o.reject_reason }}{% endif %}</div></div></div>
+{% empty %}<p class="text-muted">No orders yet.</p>{% endfor %}
+{% endblock %}
+{% block scripts %}<script>
+(function(){let q=[];try{q=JSON.parse(localStorage.getItem('pendingOrders')||'[]')}catch(e){}
+ if(q.length){document.getElementById('pending').innerHTML=q.map(o=>'<div class="card mb-2 border border-warning"><div class="card-body py-2"><b>'+o.customer_name+'</b> <span class="badge text-bg-warning">Waiting for network</span><div class="small">'+o.summary+'</div></div></div>').join('')}})();
+</script>{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between"><h4>Invoice {{ inv.number }} <span class="badge text-bg-{{ inv.status|badge }}">{{ inv.get_status_display }}</span></h4>
+ <a href="{% url 'order_detail' inv.order.pk %}">Order {{ inv.order.number }}</a></div>
+<div class="row g-3">
+<div class="col-lg-8"><div class="card"><div class="card-body">
+ <div class="mb-2"><b>{{ inv.buyer_name }}</b> · GSTIN {{ inv.buyer_gstin|default:"Unregistered" }} · Place of supply {{ inv.customer.state_name }} · {{ inv.date|date:"d M Y" }}<br>
+ <span class="badge text-bg-{% if inv.is_igst %}warning{% else %}secondary{% endif %}">{% if inv.is_igst %}IGST (inter-state){% else %}CGST + SGST (intra-state){% endif %}</span></div>
+ <table class="table table-sm"><thead><tr><th>Item</th><th>HSN</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Taxable</th><th class="num">GST %</th>{% if inv.is_igst %}<th class="num">IGST</th>{% else %}<th class="num">CGST</th><th class="num">SGST</th>{% endif %}<th class="num">Total</th></tr></thead>
+ {% for l in lines %}<tr><td>{{ l.description }}</td><td>{{ l.hsn_code }}</td><td class="num">{{ l.qty|qty }}</td><td class="num">{{ l.rate|inr }}</td><td class="num">{{ l.taxable|inr }}</td><td class="num">{{ l.gst_rate|qty }}</td>{% if inv.is_igst %}<td class="num">{{ l.igst|inr }}</td>{% else %}<td class="num">{{ l.cgst|inr }}</td><td class="num">{{ l.sgst|inr }}</td>{% endif %}<td class="num">{{ l.total|inr }}</td></tr>{% endfor %}
+ <tr class="fw-bold"><td colspan="4">Total</td><td class="num">{{ inv.taxable_value|inr }}</td><td></td>{% if inv.is_igst %}<td class="num">{{ inv.igst|inr }}</td>{% else %}<td class="num">{{ inv.cgst|inr }}</td><td class="num">{{ inv.sgst|inr }}</td>{% endif %}<td class="num">{{ inv.total|inr }}</td></tr></table>
+ <div class="d-flex flex-wrap gap-2">
+  <a class="btn btn-outline-primary btn-sm" href="{% url 'invoice_pdf' inv.pk %}" target="_blank">⬇ PDF</a>
+  <a class="btn btn-outline-success btn-sm" href="{{ wa }}" target="_blank">Share on WhatsApp</a>
+  <a class="btn btn-outline-secondary btn-sm" href="{{ mail }}">Email</a>
+ </div>
+ <div class="small text-muted mt-2">Public link: <a href="{{ pdf_url }}">{{ pdf_url }}</a></div>
+</div></div></div>
+<div class="col-lg-4">
+ <div class="card mb-3"><div class="card-body"><h6>Payments</h6>
+  <div class="d-flex justify-content-between"><span>Invoice total</span><b>₹{{ inv.total|inr }}</b></div>
+  <div class="d-flex justify-content-between"><span>Received against this invoice</span><b>₹{{ inv.paid|inr }}</b></div>
+  <div class="d-flex justify-content-between"><span>Balance</span><b class="{% if inv.balance > 0 %}flag{% endif %}">₹{{ inv.balance|inr }}</b></div>
+  {% for p in payments %}<div class="small text-muted">{{ p.date|date:"d M" }} · {{ p.number }} · {{ p.get_mode_display }} · ₹{{ p.amount|inr }}</div>{% endfor %}
+  {% if is_admin and inv.status == 'ISSUED' %}<a class="btn btn-sm btn-primary mt-2" href="{% url 'payment_new' %}?invoice={{ inv.pk }}">Record payment</a>{% endif %}</div></div>
+ <div class="card mb-3"><div class="card-body"><h6>Dispatch</h6>
+  {% if inv.is_dispatched %}<span class="ok">✔ {{ inv.dispatch.number }} on {{ inv.dispatch.date|date:"d M Y" }}</span>{% if inv.dispatch.vehicle_no %}<br>Vehicle {{ inv.dispatch.vehicle_no }}{% endif %}
+  {% elif inv.status == 'ISSUED' and is_admin %}<form method="post">{% csrf_token %}<input name="vehicle_no" class="form-control form-control-sm mb-2" placeholder="Vehicle no (optional)"><button name="action" value="dispatch" class="btn btn-success btn-sm">Record dispatch (reduces stock)</button></form>
+  {% else %}<span class="text-muted">Not dispatched.</span>{% endif %}</div></div>
+ {% if inv.status == 'ISSUED' and is_admin %}<div class="card mb-3"><div class="card-body"><h6>Cancel invoice</h6>
+  <form method="post">{% csrf_token %}<input name="reason" class="form-control form-control-sm mb-2" placeholder="Reason (required)" required><button name="action" value="cancel" class="btn btn-outline-danger btn-sm" onclick="return confirm('Cancel this invoice with a credit note?')">Issue credit note</button></form></div></div>{% endif %}
+ {% if inv.status == 'CANCELLED' %}<div class="alert alert-dark">Credit note <b>{{ inv.credit_note.number }}</b> · {{ inv.credit_note.date|date:"d M Y" }} · {{ inv.credit_note.reason }}</div>{% endif %}
+</div></div>
+{% include "desktop/_audit.html" %}
+{% endblock %}

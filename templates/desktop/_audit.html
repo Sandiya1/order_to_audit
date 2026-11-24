@@ -1,0 +1,3 @@
+{% if logs %}<div class="card mt-3"><div class="card-body"><h6>Audit trail</h6>
+<table class="table table-sm mb-0"><tr><th>When</th><th>User</th><th>Action</th><th>Detail</th></tr>
+{% for l in logs %}<tr><td>{{ l.at|date:"d M Y H:i" }}</td><td>{{ l.user|default:"-" }}</td><td>{{ l.action }}</td><td>{{ l.detail }}</td></tr>{% endfor %}</table></div></div>{% endif %}

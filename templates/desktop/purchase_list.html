@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between"><h4>Purchases</h4>{% if can_write %}<a class="btn btn-primary btn-sm" href="{% url 'purchase_new' %}">+ Record purchase</a>{% endif %}</div>
+<div class="card mt-2"><table class="table mb-0"><thead><tr><th>No</th><th>Date</th><th>Supplier</th><th>Bill</th><th>Items</th><th class="num">Taxable</th><th class="num">GST</th></tr></thead>
+{% for p in purchases %}<tr><td>{{ p.number }}</td><td>{{ p.date|date:"d M Y" }}</td><td>{{ p.supplier.name }}</td><td>{{ p.bill_no }}</td>
+<td>{% for l in p.lines.all %}{{ l.item.name }} {{ l.qty|qty }} {{ l.unit.code }} @ ₹{{ l.rate|qty }}{% if not forloop.last %}; {% endif %}{% endfor %}</td><td class="num">{{ p.taxable|inr }}</td><td class="num">{{ p.tax|inr }}</td></tr>
+{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No purchases yet.</td></tr>{% endfor %}</table></div>{% endblock %}

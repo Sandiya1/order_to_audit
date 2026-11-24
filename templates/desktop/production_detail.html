@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<div class="d-flex justify-content-between"><h4>{{ run.run_no }} · {{ run.product.name }} <span class="badge text-bg-{{ run.status|badge }}">{{ run.get_status_display }}</span></h4><a href="{% url 'production_list' %}">← All runs</a></div>
+<p class="text-muted">{{ run.run_date|date:"d M Y" }} · batch {{ run.batch_no }} · {{ run.batches|qty }} batch(es) · tolerance ±{{ run.tolerance_pct|qty }}% · by {{ run.created_by|default:"-" }}</p>
+<div class="row g-3 mb-3">
+ <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Expected output</div><div class="kpi">{{ run.expected_output|qty }}</div></div></div></div>
+ <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Actual good output</div><div class="kpi">{{ run.good_output|qty }}</div><span class="{% if run.yield_flagged %}flag{% else %}ok{% endif %}">Yield {{ run.yield_variance_pct|pct }}{% if run.yield_flagged %} ⚠ flagged{% endif %}</span></div></div></div>
+ <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Wastage (damaged pouches)</div><div class="kpi">{{ run.wastage_packets|qty }}</div></div></div></div>
+ <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Cost per packet</div><div class="kpi">₹{{ run.cost_per_packet|floatformat:2 }}</div><span class="small">Margin ₹{{ run.margin_per_packet|floatformat:2 }} ({{ run.margin_pct }}%) on ₹{{ run.product.selling_price|inr }}</span></div></div></div>
+</div>
+<div class="card mb-3"><div class="card-body"><h6>Planned vs actual consumption</h6>
+<table class="table table-sm mb-0"><thead><tr><th>Material</th><th class="num">Planned</th><th class="num">Actual</th><th class="num">Variance</th><th class="num">Var %</th><th></th><th class="num">Rate (weighted avg)</th><th class="num">Cost ₹</th></tr></thead>
+{% for l in lines %}<tr><td>{{ l.item.name }}</td><td class="num">{{ l.planned_qty|qty }} {{ l.item.base_unit.code }}</td><td class="num">{{ l.actual_qty|qty }}</td><td class="num">{{ l.variance_qty|qty }}</td>
+<td class="num {% if l.flagged %}flag{% endif %}">{{ l.variance_pct|pct }}</td><td>{% if l.flagged %}<span class="badge text-bg-danger">flagged</span>{% else %}<span class="ok">✔</span>{% endif %}</td><td class="num">{{ l.unit_cost|floatformat:4 }}</td><td class="num">{{ l.cost|inr }}</td></tr>{% endfor %}
+<tr><td>Yield (finished packets)</td><td class="num">{{ run.expected_output|qty }}</td><td class="num">{{ run.good_output|qty }}</td><td class="num">—</td><td class="num {% if run.yield_flagged %}flag{% endif %}">{{ run.yield_variance_pct|pct }}</td><td>{% if run.yield_flagged %}<span class="badge text-bg-danger">flagged</span>{% else %}<span class="ok">✔</span>{% endif %}</td><td></td><td></td></tr>
+<tr class="fw-bold"><td colspan="7">Material cost</td><td class="num">{{ run.material_cost|inr }}</td></tr></table></div></div>
+<div class="row g-3"><div class="col-lg-6"><div class="card"><div class="card-body"><h6>Costing</h6>
+ <div class="d-flex justify-content-between"><span>Raw + packaging (weighted-average)</span><span>₹{{ run.material_cost|inr }}</span></div>
+ <div class="d-flex justify-content-between"><span>Labour</span><span>₹{{ run.labour_cost|inr }}</span></div>
+ <div class="d-flex justify-content-between"><span>Gas / power</span><span>₹{{ run.power_gas_cost|inr }}</span></div>
+ <div class="d-flex justify-content-between"><span>Other overhead</span><span>₹{{ run.other_overhead|inr }}</span></div><hr class="my-1">
+ <div class="d-flex justify-content-between fw-bold"><span>Total run cost</span><span>₹{{ run.total_cost|inr }}</span></div>
+ <div class="d-flex justify-content-between"><span>÷ good packets</span><span>{{ run.good_output|qty }}</span></div>
+ <div class="d-flex justify-content-between fw-bold"><span>Cost per packet</span><span>₹{{ run.cost_per_packet|floatformat:2 }}</span></div>
+ {% if can_write and run.status == 'POSTED' %}<hr><form method="post" class="row g-2">{% csrf_token %}<input type="hidden" name="action" value="overheads">
+  <div class="col-4"><label class="small">Labour</label><input name="labour" value="{{ run.labour_cost }}" class="form-control form-control-sm"></div>
+  <div class="col-4"><label class="small">Gas / power</label><input name="power_gas" value="{{ run.power_gas_cost }}" class="form-control form-control-sm"></div>
+  <div class="col-4"><label class="small">Other</label><input name="other" value="{{ run.other_overhead }}" class="form-control form-control-sm"></div>
+  <div class="col-12"><button class="btn btn-sm btn-primary">Save overheads</button></div></form>{% endif %}</div></div></div>
+ <div class="col-lg-6">{% if can_write and run.status == 'POSTED' %}<div class="card mb-3"><div class="card-body"><h6>Cancel run</h6><form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="action" value="cancel"><input name="reason" class="form-control form-control-sm" placeholder="Reason (required)" required><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Reverse all stock movements of this run?')">Cancel</button></form></div></div>{% endif %}
+ {% include "desktop/_audit.html" %}</div></div>
+{% endblock %}

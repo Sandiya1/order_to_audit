@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load ui %}
+{% block content %}
+<h4 class="mb-3">Owner summary</h4>
+<div class="row g-3 mb-3">
+ <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted small">Orders today</div><div class="kpi">{{ orders_today|length }}</div><div class="small">₹{{ orders_today_value|inr }} (before tax)</div></div></div></div>
+ <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted small">Awaiting approval</div><div class="kpi">{{ pending }}</div><a href="{% url 'order_list' %}?status=SUBMITTED">Review</a></div></div></div>
+ <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted small">Outstanding dues</div><div class="kpi">₹{{ total_due|inr }}</div><a href="{% url 'outstanding' %}">Details</a></div></div></div>
+ <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted small">Low-stock items</div><div class="kpi {% if low %}flag{% endif %}">{{ low|length }}</div><a href="{% url 'stock_list' %}">Stock</a></div></div></div>
+</div>
+<div class="row g-3">
+ <div class="col-lg-6"><div class="card"><div class="card-body"><h6>Stock levels</h6>
+  <table class="table table-sm mb-0"><tr><th>Item</th><th class="num">On hand</th><th class="num">Reorder at</th></tr>
+  {% for r in stock %}<tr><td>{{ r.item.name }}</td><td class="num {% if r.low %}flag{% endif %}">{{ r.closing|qty }} {{ r.item.base_unit.code }}</td><td class="num">{{ r.item.reorder_level|qty }}</td></tr>{% endfor %}</table></div></div></div>
+ <div class="col-lg-6">
+  <div class="card mb-3"><div class="card-body"><h6>Variance alerts (recent runs)</h6>
+   {% for r in alerts %}<div class="mb-1"><a href="{% url 'production_detail' r.pk %}">{{ r.run_no }}</a> {{ r.product.name }}:
+     {% if r.yield_flagged %}<span class="flag">yield {{ r.yield_variance_pct|pct }}</span>{% endif %}
+     {% for l in r.flagged_lines %}<span class="flag">{{ l.item.name }} {{ l.variance_pct|pct }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+   {% empty %}<span class="text-muted">No alerts.</span>{% endfor %}</div></div>
+  <div class="card mb-3"><div class="card-body"><h6>Cost per packet (latest run)</h6>
+   {% for r in latest_cost %}<div>{{ r.product.name }}: <b>₹{{ r.cost_per_packet|floatformat:2 }}</b> vs price ₹{{ r.product.selling_price|inr }} · margin <b>{{ r.margin_pct }}%</b></div>{% empty %}<span class="text-muted">No runs yet.</span>{% endfor %}</div></div>
+  <div class="card"><div class="card-body"><h6>Top outstanding</h6>
+   {% for a in due %}<div class="d-flex justify-content-between"><span>{{ a.customer.name }}</span><b>₹{{ a.outstanding|inr }}</b></div>{% empty %}<span class="text-muted">Nothing outstanding.</span>{% endfor %}</div></div>
+ </div>
+</div>
+{% endblock %}
