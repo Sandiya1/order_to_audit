@@ -9,6 +9,12 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+# Hosts like Render terminate HTTPS in front of the app: trust their forwarded headers.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+_render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")   # set automatically by Render
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_render_host}")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -83,7 +89,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---- Business configuration ------------------------------------------------
 COMPANY = {
-    "name": "Sri Murugan Snacks (Demo)",
+    "name": "MAS Snacks (Demo)",
     "gstin": "33ABCDE1234F1Z5",          # fictitious
     "state_code": "33",                   # Tamil Nadu
     "state_name": "Tamil Nadu",
