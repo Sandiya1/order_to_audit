@@ -3,6 +3,8 @@
 One system from a salesman's order to the monthly auditor's report. Every transaction is entered once, at its
 source, and flows into stock, production, costing and accounts.
 
+**Here is the drive Link for a demo video:**https://drive.google.com/file/d/1W0oBCSjdOz481J-hCasolbC3vUFLU1px/view?usp=sharing
+
 ## Run it
 
 ```bash
